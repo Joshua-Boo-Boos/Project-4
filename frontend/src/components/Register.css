@@ -1,0 +1,26 @@
+.register-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    border: 2px solid rgb(200,200,200);
+    border-radius: 10px;
+    height: fit-content;
+    width: 70%;
+    padding: 2%
+}
+
+.register-user-form {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    width: fit-content;
+    height: fit-content;
+    border: 2px solid rgb(200,200,200);
+    padding: 5% 10%;
+}
+
+.register-user-form * {
+    margin: 5%;
+}
