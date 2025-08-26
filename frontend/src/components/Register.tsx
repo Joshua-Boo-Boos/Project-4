@@ -22,12 +22,10 @@ const Register: React.FC = () => {
                 body: JSON.stringify({username: inputUsername, password: SHA512(inputPassword + passwordSalt).toString()})
             });
             if (!response.ok) {
-                console.log(response)
                 console.error('Error registering user:', response.statusText);
             } else {
                 const data = await response.json();
                 if (data.success) {
-                    console.log('Registration of user successful')
                     try {
                         login(inputUsername);
                     } catch (error) {

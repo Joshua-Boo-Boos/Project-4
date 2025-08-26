@@ -28,34 +28,30 @@ const UserProfile: React.FC = () => {
             });
             if (!response.ok) {
                 console.error('Error submiting recipe to the database');
+                setUserProvidedRecipeTitle('');
+                setUserProvidedRecipeDescription('');
             } else {
-                const data = await response.json();
-                if (data.success) {
-                    console.log('Recipe successfully submitted to the database');
-                }
+                setUserProvidedRecipeTitle('');
+                setUserProvidedRecipeDescription('');
+                fetchUserRecipes();
             }
-            setUserProvidedRecipeTitle('');
-            setUserProvidedRecipeDescription('');
         }
     }
 
     const fetchUserRecipes = async () => {
         const response = await fetch(`https://localhost:8000/api/${urlProvidedUsername}/recipes`);
         if (!response.ok) {
-            console.log('Error fetching recipes by provided username');
+            console.error('Error fetching recipes by provided username');
         } else {
             const data = await response.json();
-            console.log('Data fetched by request for username', urlProvidedUsername, 'is:', data);
             if (data.recipesString) {
                 const recipesArray = JSON.parse(data.recipesString);
-                console.log('recipesArray', recipesArray);
                 setUserRecipes(recipesArray);
             }
         }
     }
 
     const addToFavourites = async (recipeId: number) => {
-        console.log('Called addToFavourites with value', recipeId);
         if (isLoggedIn && username) {
             const addToFavouritesAPIURL = 'https://localhost:8000/api/addToFavourites';
             const response = await fetch(addToFavouritesAPIURL, {
@@ -71,7 +67,6 @@ const UserProfile: React.FC = () => {
             } else {
                 const data = await response.json();
                 if (data.success) {
-                    console.log('Successfully added recipe to favourites');
                     if (data.current_favourites) {
                         setFavouriteRecipeIDs(() => {
                             const current_favourites_array = JSON.parse(data.current_favourites);
@@ -84,7 +79,6 @@ const UserProfile: React.FC = () => {
     }
 
     const removeFromFavourites = async (recipeId: number) => {
-        console.log('Called removeFromFavourites with value', recipeId);
         if (isLoggedIn && username) {
             const removeFromFavouritesAPIURL = 'https://localhost:8000/api/removeFromFavourites';
             const response = await fetch(removeFromFavouritesAPIURL, {
@@ -100,7 +94,6 @@ const UserProfile: React.FC = () => {
             } else {
                 const data = await response.json();
                 if (data.success) {
-                    console.log('Succesfully removed recipe from favourites');
                     if (data.current_favourites) {
                         setFavouriteRecipeIDs(() => {
                             const current_favourites_array = JSON.parse(data.current_favourites);
@@ -128,14 +121,11 @@ const UserProfile: React.FC = () => {
             } else {
                 const data = await response.json();
                 if (data.success) {
-                    console.log('data.success', data.success);
                     if (data.favourite_recipe_ids) {
-                        console.log('data.favourite_recipe_ids', data.favourite_recipe_ids);
                         setFavouriteRecipeIDs(() => {
                             const recipeIDs = JSON.parse(data.favourite_recipe_ids);
                             return recipeIDs;
                         });
-                        console.log('favouriteRecipeIDs', favouriteRecipeIDs);
                     }
                 }
             }
@@ -158,7 +148,6 @@ const UserProfile: React.FC = () => {
             } else {
                 const data = await response.json();
                 if (data.success) {
-                    console.log('Success removing recipe from database');
                     await fetchUserRecipes();
                 }
             }
@@ -166,18 +155,11 @@ const UserProfile: React.FC = () => {
     }
 
     useEffect(() => {
-        getFavouriteRecipes();
-    }, [])
-
-    useEffect(() => {
         if (isLoggedIn && username) {
-            console.log('favouriteRecipeIDs is now:', favouriteRecipeIDs);
+            fetchUserRecipes();
+            getFavouriteRecipes();
         }
-    }, [favouriteRecipeIDs])
-
-    useEffect(() => {
-        fetchUserRecipes();
-    }, [userProvidedRecipeTitle, userProvidedRecipeDescription])
+    }, [])
 
     return (
         <>

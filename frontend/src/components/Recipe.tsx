@@ -12,15 +12,18 @@ const Recipe: React.FC = () => {
     const { isLoggedIn, username } = useAuth();
     const navigator = useNavigate();
     const getRecipeInformation = async (recipeId: string) => {
-        const getRecipeInformationAPIURL = `https://localhost:8000/api/getRecipeInformation/${recipeId}`;
-        const response = await fetch(getRecipeInformationAPIURL);
-        const data = await response.json();
-        if (data.success) {
-            setRecipeData(() => {
-                const dataObject: string[] = JSON.parse(data.recipe_data);
-                console.log('dataObject:', dataObject);
-                return dataObject;
-            })
+        try {
+            const getRecipeInformationAPIURL = `https://localhost:8000/api/getRecipeInformation/${recipeId}`;
+            const response = await fetch(getRecipeInformationAPIURL);
+            const data = await response.json();
+            if (data.success) {
+                setRecipeData(() => {
+                    const dataObject: string[] = JSON.parse(data.recipe_data);
+                    return dataObject;
+                })
+            }
+        } catch (error) {
+            navigator('/');
         }
     }
     const getRecipeComments = async (recipeId: string) => {
@@ -29,7 +32,6 @@ const Recipe: React.FC = () => {
         const data = await response.json()
         if (data.success) {
             const recipeCommentsArray = JSON.parse(data.recipe_comments)
-            console.log('recipeCommentsArray:', recipeCommentsArray);
             setRecipeComments(() => recipeCommentsArray);
         }
     }
@@ -68,7 +70,6 @@ const Recipe: React.FC = () => {
         } else {
             const data = await response.json();
             if (data.success) {
-                console.log('Successfully removed comment');
                 if (recipeId) {
                     getRecipeComments(recipeId);
                 }

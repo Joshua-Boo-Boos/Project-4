@@ -9,7 +9,21 @@ const NavBar: React.FC = () => {
     const loadPage = (pageToLoad: string) => {
         navigator(pageToLoad);
     }
-    const logoutFunction = () => {
+    const logoutFunction = async () => {
+        const logoutAPIURL = 'https://localhost:8000/api/logout';
+        const response = await fetch(logoutAPIURL, {
+            method: 'POST',
+            credentials: 'include',
+            headers: {
+                'Content-Length': '0'
+            }
+        });
+        const data = await response.json();
+        if (data.success) {
+            alert('Successfully logged out')
+        } else {
+            alert('Warning - Logout unsuccessful');
+        }
         logout();
         loadPage('/');
     }

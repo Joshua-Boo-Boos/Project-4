@@ -1,5 +1,5 @@
 # Import all requires modules
-from fastapi import FastAPI, Response, Request, Depends
+from fastapi import FastAPI, Response, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.exceptions import HTTPException
 from pydantic import BaseModel
@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 import json
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
-from passlib.context import CryptContext
+import hashlib
 
 # Define JWT related variables
 SECRET_KEY = "%$^%U$P$$Ph4hk4o4okhtoh4por4%J$Jyjyj5yrj4y456457rtRYJYRTJOJ%J5p5p[46mk4646jojo46jom46j$^J$J]"
@@ -20,6 +20,13 @@ def create_access_token(data: dict, expires_delta: timedelta = timedelta(minutes
     expire = datetime.now(timezone.utc) + expires_delta
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+# Define SHA-512 hashing function
+def SHA512(input_string: str) -> str:
+    return hashlib.sha512(input_string.encode('utf-8')).hexdigest()
+
+# Define SHA-512 Password Salt
+password_salt = 'mimh3mh8435h8m3580h35mh030m9j340m9509u3w-uhj35,j,lrym,l;ry,ml;r5y,l;km,l5k6k&(&*()()P&:(Y:(:@(@:&(@&@:&(Y:@(*:^*TKI$RJ$Jejetjntegfjnryetjm45r76ik45k7y45yk$£%H£%HE%T^J£)))))))'
 
 # Define pydantic objects
 class RecipeObject(BaseModel):
@@ -67,7 +74,7 @@ async def init_db():
         await db.execute('CREATE TABLE IF NOT EXISTS posts (username TEXT PRIMARY KEY, post_data TEXT NOT NULL DEFAULT \'[]\')')
         await db.commit()
     async with aiosqlite.connect('favourites.db') as db:
-        await db.execute("CREATE TABLE IF NOT EXISTS favourites (username TEXT PRIMARY KEY, ids TEXT NOT NULL DEFAULT '[]')")
+        await db.execute("CREATE TABLE IF NOT EXISTS favourites (username TEXT PRIMARY KEY, ids TEXT NOT NULL DEFAULT \'[]\')")
         await db.commit()
     async with aiosqlite.connect('comments.db') as db:
         await db.execute('CREATE TABLE IF NOT EXISTS comments (recipe_id TEXT PRIMARY KEY, comments_data TEXT NOT NULL DEFAULT \'[]\')')
@@ -110,7 +117,7 @@ async def verify_authentication(request: Request):
 async def login_for_access_token(response: Response, user_credentials_obj: UserCredentialsObject):
     async with aiosqlite.connect('users.db') as db:
         username = user_credentials_obj.username
-        password = user_credentials_obj.password
+        password = SHA512(user_credentials_obj.password + password_salt)
         cur = await db.execute('SELECT * FROM users WHERE username = ?', (username,))
         result = await cur.fetchone()
         if result:
@@ -128,6 +135,11 @@ async def login_for_access_token(response: Response, user_credentials_obj: UserC
                 raise HTTPException(status_code=401, detail='Incorrect password')
         else:
             raise HTTPException(status_code=400, detail='User not found')
+        
+@app.post('/api/logout') # Logout route
+async def logout(response: Response):
+    response.delete_cookie('access_token')
+    return {'success': True}
         
 @app.post('/api/deleteComment')
 async def delete_comment(delete_comment_obj: DeleteCommentObject):
@@ -319,7 +331,7 @@ async def get_user_recipes(username: str):
 @app.post('/api/getFavouriteRecipes')
 async def get_favourite_recipes(username_obj: UsernameObj):
     async with aiosqlite.connect('favourites.db') as db:
-        await db.execute("CREATE TABLE IF NOT EXISTS favourites (username TEXT PRIMARY KEY, ids TEXT NOT NULL DEFAULT '[]')")
+        await db.execute("CREATE TABLE IF NOT EXISTS favourites (username TEXT PRIMARY KEY, ids TEXT NOT NULL DEFAULT \'[]\')")
         await db.commit()
         try:
             username = username_obj.username
@@ -334,7 +346,7 @@ async def get_favourite_recipes(username_obj: UsernameObj):
                 else:
                     return {'success': True, 'favourite_recipe_ids': '[]'}
             else:
-                await db.execute('INSERT INTO favourites VALUES (?,?)', (username, '[]'))
+                await db.execute('INSERT INTO favourites VALUES (?,?)', (username, '\'[]\''))
                 await db.commit()
                 return {'success': True, 'favourite_recipe_ids': '[]'}
         except aiosqlite.Error as e:
@@ -442,7 +454,7 @@ async def make_recipe_submission(recipe_obj: RecipeObject):
 async def attempt_user_registration(user_credentials_obj: UserCredentialsObject):
     async with aiosqlite.connect('users.db') as db:
         username = user_credentials_obj.username
-        password = user_credentials_obj.password
+        password = SHA512(user_credentials_obj.password + password_salt)
         try:
             cur = await db.execute('SELECT * FROM users WHERE username = ?', (username,))
             result = await cur.fetchone()

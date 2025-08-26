@@ -29,7 +29,6 @@ const Home: React.FC = () => {
     }
 
     const addToFavourites = async (recipeId: number) => {
-        console.log('Called addToFavourites with value', recipeId);
         if (isLoggedIn && username) {
             const addToFavouritesAPIURL = 'https://localhost:8000/api/addToFavourites';
             const response = await fetch(addToFavouritesAPIURL, {
@@ -45,7 +44,6 @@ const Home: React.FC = () => {
             } else {
                 const data = await response.json();
                 if (data.success) {
-                    console.log('Successfully added recipe to favourites');
                     if (data.current_favourites) {
                         setFavouriteRecipeIDs(() => {
                             const current_favourites_array = JSON.parse(data.current_favourites);
@@ -58,7 +56,6 @@ const Home: React.FC = () => {
     }
 
     const removeFromFavourites = async (recipeId: number) => {
-        console.log('Called removeFromFavourites with value', recipeId);
         if (isLoggedIn && username) {
             const removeFromFavouritesAPIURL = 'https://localhost:8000/api/removeFromFavourites';
             const response = await fetch(removeFromFavouritesAPIURL, {
@@ -74,7 +71,6 @@ const Home: React.FC = () => {
             } else {
                 const data = await response.json();
                 if (data.success) {
-                    console.log('Succesfully removed recipe from favourites');
                     if (data.current_favourites) {
                         setFavouriteRecipeIDs(() => {
                             const current_favourites_array = JSON.parse(data.current_favourites);
@@ -102,14 +98,11 @@ const Home: React.FC = () => {
             } else {
                 const data = await response.json();
                 if (data.success) {
-                    console.log('data.success', data.success);
                     if (data.favourite_recipe_ids) {
-                        console.log('data.favourite_recipe_ids', data.favourite_recipe_ids);
                         setFavouriteRecipeIDs(() => {
                             const recipeIDs = JSON.parse(data.favourite_recipe_ids);
                             return recipeIDs;
                         });
-                        console.log('favouriteRecipeIDs:', favouriteRecipeIDs);
                     }
                 }
             }
@@ -125,7 +118,6 @@ const Home: React.FC = () => {
     }, [])
 
     useEffect(() => {
-        console.log('favouriteRecipeIDs changed:', favouriteRecipeIDs)
     }, [favouriteRecipeIDs])
 
     return (
