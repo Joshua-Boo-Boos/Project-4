@@ -47,6 +47,17 @@ class UsernameAndIDToDelete(BaseModel):
     username: str
     recipe_id: str
 
+class SubmitCommentObject(BaseModel):
+    username: str
+    recipe_id: str
+    recipe_comment: str
+    comment_id: str
+
+class DeleteCommentObject(BaseModel):
+    username: str
+    recipe_id: str
+    comment_id: str
+
 # Define asynchronous aiosqlite database initialisation function
 async def init_db():
     async with aiosqlite.connect('users.db') as db:
@@ -57,6 +68,9 @@ async def init_db():
         await db.commit()
     async with aiosqlite.connect('favourites.db') as db:
         await db.execute("CREATE TABLE IF NOT EXISTS favourites (username TEXT PRIMARY KEY, ids TEXT NOT NULL DEFAULT '[]')")
+        await db.commit()
+    async with aiosqlite.connect('comments.db') as db:
+        await db.execute('CREATE TABLE IF NOT EXISTS comments (recipe_id TEXT PRIMARY KEY, comments_data TEXT NOT NULL DEFAULT \'[]\')')
         await db.commit()
 
 # Use asynchronous context manager to define the lifespan
@@ -114,6 +128,100 @@ async def login_for_access_token(response: Response, user_credentials_obj: UserC
                 raise HTTPException(status_code=401, detail='Incorrect password')
         else:
             raise HTTPException(status_code=400, detail='User not found')
+        
+@app.post('/api/deleteComment')
+async def delete_comment(delete_comment_obj: DeleteCommentObject):
+    async with aiosqlite.connect('comments.db') as db:
+        try:
+            username = delete_comment_obj.username
+            recipe_id = delete_comment_obj.recipe_id
+            comment_id = delete_comment_obj.comment_id
+            cur = await db.execute('SELECT * FROM comments WHERE recipe_id = ?', (recipe_id,))
+            tuple_json_string_comments_array = await cur.fetchone()
+            print(f'tuple_json_string_comments_array: {tuple_json_string_comments_array}')
+            if tuple_json_string_comments_array:
+                json_string_comments_array = tuple_json_string_comments_array[1]
+                print(f'json_string_comments_array: {json_string_comments_array}')
+                list_string_comments_array = json.loads(json_string_comments_array)
+                print(f'list_string_comments_array: {list_string_comments_array}')
+                new_list_string_comments_array = []
+                for comment_item in list_string_comments_array:
+                    if comment_item[2] != comment_id:
+                        new_list_string_comments_array.append(comment_item)
+                    else:
+                        if comment_item[0] != username:
+                            raise HTTPException(status_code=401, detail='User is not authorised to delete this comment')
+                print(f'new_list_string_comments_array: {new_list_string_comments_array}')
+                json_new_string_comments_array = json.dumps(new_list_string_comments_array)
+                print(f'json_new_string_comments_array: {json_new_string_comments_array}')
+                await db.execute('UPDATE comments SET comments_data = ? WHERE recipe_id = ?', (json_new_string_comments_array, recipe_id))
+                await db.commit()
+                return {'success': True}
+            else:
+                pass
+        except aiosqlite.Error as e:
+            print(f'Database error removing comment from database: {e}')
+            raise HTTPException(status_code=500, detail='Database error removing comment from database')
+        except Exception as ex:
+            print(f'Non-database error removing comment from database: {ex}')
+            raise HTTPException(status_code=500, detail='Non-database error removing comment from database')
+
+@app.post('/api/submitComment')
+async def submit_comment(submit_comment_obj: SubmitCommentObject):
+    async with aiosqlite.connect('comments.db') as db:
+        try:
+            username = submit_comment_obj.username
+            recipe_id = submit_comment_obj.recipe_id
+            comment = submit_comment_obj.recipe_comment
+            comment_id = submit_comment_obj.comment_id
+            cur = await db.execute('SELECT * FROM comments WHERE recipe_id = ?', (recipe_id,))
+            tuple_json_string_comments_array = await cur.fetchone()
+            print(f'tuple_json_string_comments_array: {tuple_json_string_comments_array}')
+            if tuple_json_string_comments_array:
+                json_string_comments_array = tuple_json_string_comments_array[1]
+                print(f'json_string_comments_array: {json_string_comments_array}')
+                list_string_comments_array = json.loads(json_string_comments_array)
+                print(f'list_string_comments_array: {list_string_comments_array}')
+                list_string_comments_array.append([username, comment, comment_id])
+                print(f'list_string_comments_array now: {list_string_comments_array}')
+                json_new_string_comments_array = json.dumps(list_string_comments_array)
+                print(f'json_new_string_comments_array: {json_new_string_comments_array}')
+                await db.execute('UPDATE comments SET comments_data = ? WHERE recipe_id = ?', (json_new_string_comments_array, recipe_id))
+                await db.commit()
+                return {'success': True}
+            else:
+                json_string_to_insert_into_database = json.dumps([[username, comment, comment_id]])
+                await db.execute('INSERT INTO comments VALUES (?,?)', (recipe_id,json_string_to_insert_into_database))
+                await db.commit()
+                return {'success': True}
+        except aiosqlite.Error as e:
+            print(f'Database error submitting comment: {e}')
+            raise HTTPException(status_code=500, detail='Database error submitting comment')
+        except Exception as ex:
+            print(f'Non-databse error submitting comment: {ex}')
+            raise HTTPException(status_code=500, detail='Non-database error subbmitting comment')
+
+
+@app.get('/api/getRecipeComments/{recipeId}')
+async def get_recipe_comments(recipeId: str):
+    async with aiosqlite.connect('comments.db') as db:
+        try:
+            cur = await db.execute('SELECT * FROM comments WHERE recipe_id = ?', (recipeId,))
+            tuple_json_string_comments_found = await cur.fetchone()
+            print(f'tuple_json_string_comments_found: {tuple_json_string_comments_found}')
+            if tuple_json_string_comments_found:
+                json_string_comments_found = tuple_json_string_comments_found[1]
+                print(f'json_string_comments_found: {json_string_comments_found}')
+                if json_string_comments_found:
+                    return {'success': True, 'recipe_comments': json_string_comments_found}
+            else:
+                return {'success': True, 'recipe_comments': '[]'}
+        except aiosqlite.Error as e:
+            print(f'Database error getting specific recipe\'s comments: {e}')
+            raise HTTPException(status_code=500, detail='Database error getting specific recipe\'s comments')
+        except Exception as ex:
+            print(f'Non-database error getting specific recipe\'s comments: {ex}')
+            raise HTTPException(status_code=500, detail='Non-database error getting specific recipe\'s comments')
 
 @app.get('/api/retrieveAllRecipes')
 async def get_all_recipes():
