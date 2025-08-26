@@ -41,7 +41,6 @@ export const AuthProvider = ({ children }: { children: ReactNode}) => {
     const logout = () => {
         setIsLoggedIn(false);
         setUsername(null);
-        // ADD BACKEND LOGOUT LOGIC
     }
 
     return (
