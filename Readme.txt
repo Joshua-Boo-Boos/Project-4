@@ -14,7 +14,7 @@ Usage instructions:
 
 			This command will run the backend service on the localhost address using port 8000 and will update when the backend code is changed.
 
-			SSL requires -ssl-keyfile and --ssl-certfile and the files are included.
+			SSL requires --ssl-keyfile and --ssl-certfile and the files are included.
 
 	Browser:
 
